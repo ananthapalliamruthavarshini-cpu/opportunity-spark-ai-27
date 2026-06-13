@@ -14,16 +14,224 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          opportunity_id: string
+          status: Database["public"]["Enums"]["app_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          status?: Database["public"]["Enums"]["app_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          status?: Database["public"]["Enums"]["app_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_history: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      opportunities: {
+        Row: {
+          apply_link: string
+          benefits: string | null
+          category: Database["public"]["Enums"]["opp_category"]
+          created_at: string
+          deadline: string
+          description: string
+          eligibility: string | null
+          id: string
+          organization: string
+          skills_required: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          apply_link: string
+          benefits?: string | null
+          category: Database["public"]["Enums"]["opp_category"]
+          created_at?: string
+          deadline: string
+          description: string
+          eligibility?: string | null
+          id?: string
+          organization: string
+          skills_required?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          apply_link?: string
+          benefits?: string | null
+          category?: Database["public"]["Enums"]["opp_category"]
+          created_at?: string
+          deadline?: string
+          description?: string
+          eligibility?: string | null
+          id?: string
+          organization?: string
+          skills_required?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          branch: string | null
+          certifications: string[] | null
+          cgpa: string | null
+          college: string | null
+          created_at: string
+          current_year: string | null
+          degree: string | null
+          email: string | null
+          full_name: string | null
+          github_url: string | null
+          id: string
+          interests: string[] | null
+          languages: string[] | null
+          linkedin_url: string | null
+          phone: string | null
+          projects: string | null
+          resume_path: string | null
+          resume_text: string | null
+          skills: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          branch?: string | null
+          certifications?: string[] | null
+          cgpa?: string | null
+          college?: string | null
+          created_at?: string
+          current_year?: string | null
+          degree?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id: string
+          interests?: string[] | null
+          languages?: string[] | null
+          linkedin_url?: string | null
+          phone?: string | null
+          projects?: string | null
+          resume_path?: string | null
+          resume_text?: string | null
+          skills?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          branch?: string | null
+          certifications?: string[] | null
+          cgpa?: string | null
+          college?: string | null
+          created_at?: string
+          current_year?: string | null
+          degree?: string | null
+          email?: string | null
+          full_name?: string | null
+          github_url?: string | null
+          id?: string
+          interests?: string[] | null
+          languages?: string[] | null
+          linkedin_url?: string | null
+          phone?: string | null
+          projects?: string | null
+          resume_path?: string | null
+          resume_text?: string | null
+          skills?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "student"
+      app_status: "saved" | "applied" | "interview" | "selected" | "rejected"
+      opp_category:
+        | "scholarship"
+        | "internship"
+        | "hackathon"
+        | "certification"
+        | "course"
+        | "fellowship"
+        | "competition"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +358,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "student"],
+      app_status: ["saved", "applied", "interview", "selected", "rejected"],
+      opp_category: [
+        "scholarship",
+        "internship",
+        "hackathon",
+        "certification",
+        "course",
+        "fellowship",
+        "competition",
+      ],
+    },
   },
 } as const
