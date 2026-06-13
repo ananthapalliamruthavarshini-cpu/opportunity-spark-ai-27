@@ -79,14 +79,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Opportunityhub AI" },
+      { name: "description", content: "Opportunity Navigator AI is a web application that helps students find scholarships, internships, and other opportunities." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Opportunityhub AI" },
+      { property: "og:description", content: "Opportunity Navigator AI is a web application that helps students find scholarships, internships, and other opportunities." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Opportunityhub AI" },
+      { name: "twitter:description", content: "Opportunity Navigator AI is a web application that helps students find scholarships, internships, and other opportunities." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8a549570-8fa6-4be5-b36f-2b193736ca55/id-preview-f943e59c--2d9ecb07-f8f0-402b-85ad-0e89b620fbf0.lovable.app-1781340917269.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8a549570-8fa6-4be5-b36f-2b193736ca55/id-preview-f943e59c--2d9ecb07-f8f0-402b-85ad-0e89b620fbf0.lovable.app-1781340917269.png" },
     ],
     links: [
       {
