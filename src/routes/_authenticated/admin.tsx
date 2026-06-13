@@ -69,7 +69,7 @@ function Admin() {
       eligibility: o.eligibility ?? null,
       benefits: o.benefits ?? null,
       deadline: o.deadline ?? "",
-      category: o.category ?? "internship",
+      category: (o.category ?? "internship") as "scholarship"|"internship"|"hackathon"|"certification"|"course"|"fellowship"|"competition",
       apply_link: o.apply_link ?? "",
       skills_required: (o.skills_required ?? []) as string[],
     };
