@@ -66,7 +66,7 @@ async function fetchRss(src: SourceRow): Promise<NormalizedOpp[]> {
       pickTag(chunk, "link") ??
       (chunk.match(/<link[^>]*href=["']([^"']+)["']/i)?.[1] ?? "");
     const description = pickTag(chunk, "description") ?? pickTag(chunk, "summary") ?? pickTag(chunk, "content") ?? "";
-    const guid = pickTag(chunk, "guid") ?? pickTag(chunk, "id") ?? link || title;
+    const guid = pickTag(chunk, "guid") ?? pickTag(chunk, "id") ?? (link || title);
     return {
       external_id: guid,
       title: stripHtml(title).slice(0, 300),
