@@ -16,6 +16,7 @@ import { Plus, Pencil, Trash2, Users, Briefcase, RefreshCw, Loader2, Archive, Ra
 import { toast } from "sonner";
 import { useState } from "react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
+import type { Json } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   ssr: false,
@@ -122,7 +123,7 @@ function Admin() {
       name: s.name ?? "",
       kind: s.kind ?? "rss",
       url: s.url ?? "",
-      config: cfg,
+      config: cfg as Json,
       default_category: s.default_category ?? null,
       enabled: s.enabled ?? true,
     };
