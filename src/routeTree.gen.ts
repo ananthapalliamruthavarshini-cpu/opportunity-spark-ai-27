@@ -21,6 +21,7 @@ import { Route as AuthenticatedApplicationsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedOpportunitiesIndexRouteImport } from './routes/_authenticated/opportunities.index'
 import { Route as AuthenticatedOpportunitiesIdRouteImport } from './routes/_authenticated/opportunities.$id'
+import { Route as ApiPublicHooksSyncOpportunitiesRouteImport } from './routes/api/public/hooks/sync-opportunities'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -86,6 +87,12 @@ const AuthenticatedOpportunitiesIdRoute =
     path: '/$id',
     getParentRoute: () => AuthenticatedOpportunitiesRoute,
   } as any)
+const ApiPublicHooksSyncOpportunitiesRoute =
+  ApiPublicHooksSyncOpportunitiesRouteImport.update({
+    id: '/api/public/hooks/sync-opportunities',
+    path: '/api/public/hooks/sync-opportunities',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/opportunities/$id': typeof AuthenticatedOpportunitiesIdRoute
   '/opportunities/': typeof AuthenticatedOpportunitiesIndexRoute
+  '/api/public/hooks/sync-opportunities': typeof ApiPublicHooksSyncOpportunitiesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/opportunities/$id': typeof AuthenticatedOpportunitiesIdRoute
   '/opportunities': typeof AuthenticatedOpportunitiesIndexRoute
+  '/api/public/hooks/sync-opportunities': typeof ApiPublicHooksSyncOpportunitiesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -126,6 +135,7 @@ export interface FileRoutesById {
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/opportunities/$id': typeof AuthenticatedOpportunitiesIdRoute
   '/_authenticated/opportunities/': typeof AuthenticatedOpportunitiesIndexRoute
+  '/api/public/hooks/sync-opportunities': typeof ApiPublicHooksSyncOpportunitiesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -141,6 +151,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/opportunities/$id'
     | '/opportunities/'
+    | '/api/public/hooks/sync-opportunities'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/opportunities/$id'
     | '/opportunities'
+    | '/api/public/hooks/sync-opportunities'
   id:
     | '__root__'
     | '/'
@@ -167,12 +179,14 @@ export interface FileRouteTypes {
     | '/_authenticated/recommendations'
     | '/_authenticated/opportunities/$id'
     | '/_authenticated/opportunities/'
+    | '/api/public/hooks/sync-opportunities'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksSyncOpportunitiesRoute: typeof ApiPublicHooksSyncOpportunitiesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -261,6 +275,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOpportunitiesIdRouteImport
       parentRoute: typeof AuthenticatedOpportunitiesRoute
     }
+    '/api/public/hooks/sync-opportunities': {
+      id: '/api/public/hooks/sync-opportunities'
+      path: '/api/public/hooks/sync-opportunities'
+      fullPath: '/api/public/hooks/sync-opportunities'
+      preLoaderRoute: typeof ApiPublicHooksSyncOpportunitiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -307,17 +328,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksSyncOpportunitiesRoute: ApiPublicHooksSyncOpportunitiesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
