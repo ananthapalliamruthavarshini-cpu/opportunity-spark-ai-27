@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { runConnector, contentHash, type SourceRow, type NormalizedOpp } from "@/lib/connectors";
+import { runConnector, contentHash, type SourceRow } from "@/lib/connectors";
+import type { Database } from "@/integrations/supabase/types";
+type OppCategory = Database["public"]["Enums"]["opp_category"];
 
 // POST /api/public/hooks/sync-opportunities
 // Auth: apikey header must equal SUPABASE_PUBLISHABLE_KEY (anon key), i.e. the caller
@@ -53,7 +55,7 @@ export const Route = createFileRoute("/api/public/hooks/sync-opportunities")({
                 description: it.description,
                 apply_link: it.apply_link,
                 deadline: it.deadline,
-                category: it.category as NormalizedOpp["category"],
+                category: it.category as OppCategory,
                 eligibility: it.eligibility ?? null,
                 benefits: it.benefits ?? null,
                 skills_required: it.skills_required ?? [],
