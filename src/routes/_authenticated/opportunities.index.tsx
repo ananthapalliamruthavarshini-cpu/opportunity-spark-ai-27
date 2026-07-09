@@ -7,45 +7,56 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Search, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/opportunities/")({
   head: () => ({ meta: [{ title: "Opportunities · OpportunityHub AI" }] }),
   component: OppList,
 });
 
-const CATEGORIES = ["all", "scholarship", "internship", "hackathon", "certification", "course", "fellowship", "competition"] as const;
+const CATEGORIES = [
+  "all", "scholarship", "internship", "hackathon", "certification",
+  "course", "fellowship", "competition", "grant", "research",
+  "conference", "bootcamp", "job", "volunteer", "mentorship",
+  "startup", "government",
+] as const;
 
 function OppList() {
+  const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("all");
   const [liveOnly, setLiveOnly] = useState(true);
 
-  const { data: all } = useQuery<OppRow[]>({
-    queryKey: ["all-opps"],
+  // debounce search input
+  useEffect(() => {
+    const t = setTimeout(() => setQ(qInput.trim()), 250);
+    return () => clearTimeout(t);
+  }, [qInput]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: filtered = [], isFetching } = useQuery<OppRow[]>({
+    queryKey: ["opps", q, cat, liveOnly],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("opportunities")
         .select("id,title,organization,category,deadline,description,apply_link,skills_required")
-        .order("deadline", { ascending: true });
+        .eq("is_archived", false)
+        .order("deadline", { ascending: true })
+        .limit(500);
+      if (liveOnly) query = query.gte("deadline", today);
+      if (cat !== "all") query = query.eq("category", cat as never);
+      if (q) {
+        const esc = q.replace(/[,%()]/g, " ");
+        query = query.or(
+          `title.ilike.%${esc}%,organization.ilike.%${esc}%,description.ilike.%${esc}%,location.ilike.%${esc}%`
+        );
+      }
+      const { data, error } = await query;
+      if (error) throw error;
       return (data ?? []) as OppRow[];
     },
   });
-
-  const today = new Date().toISOString().slice(0, 10);
-  const filtered = useMemo(() => {
-    return (all ?? []).filter((o) => {
-      if (liveOnly && o.deadline < today) return false;
-      if (cat !== "all" && o.category !== cat) return false;
-      if (q) {
-        const t = q.toLowerCase();
-        const hay = `${o.title} ${o.organization} ${o.description} ${(o.skills_required ?? []).join(" ")}`.toLowerCase();
-        if (!hay.includes(t)) return false;
-      }
-      return true;
-    });
-  }, [all, q, cat, liveOnly, today]);
 
   return (
     <AppShell>
@@ -60,7 +71,12 @@ function OppList() {
             <Label className="text-xs">Search</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" placeholder="React, AWS, Google..." />
+              <Input
+                value={qInput}
+                onChange={(e) => setQInput(e.target.value)}
+                className="pl-9"
+                placeholder="Search titles, companies, skills, locations..."
+              />
             </div>
           </div>
           <div>
@@ -78,13 +94,19 @@ function OppList() {
           </div>
         </div>
 
-        <div className="text-sm text-muted-foreground">{filtered.length} result{filtered.length !== 1 && "s"}</div>
+        <div className="text-sm text-muted-foreground flex items-center gap-2">
+          {isFetching && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {filtered.length} result{filtered.length !== 1 && "s"}
+          {q && <span>for "{q}"</span>}
+        </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filtered.map((o) => <OpportunityCard key={o.id} opp={o} />)}
         </div>
         {filtered.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground">No opportunities match your filters.</div>
+          <div className="text-center py-12 text-muted-foreground">
+            {q ? `No opportunities match "${q}". Try a different keyword or clear filters.` : "No opportunities match your filters."}
+          </div>
         )}
       </div>
     </AppShell>
