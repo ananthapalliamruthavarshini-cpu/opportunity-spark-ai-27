@@ -45,7 +45,7 @@ function OppList() {
         .order("deadline", { ascending: true })
         .limit(500);
       if (liveOnly) query = query.gte("deadline", today);
-      if (cat !== "all") query = query.eq("category", cat as OppRow["category"]);
+      if (cat !== "all") query = query.eq("category", cat as never);
       if (q) {
         const esc = q.replace(/[,%()]/g, " ");
         query = query.or(
