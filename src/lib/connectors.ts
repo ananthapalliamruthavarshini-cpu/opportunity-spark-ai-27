@@ -52,7 +52,12 @@ export function contentHash(o: NormalizedOpp): string {
 
 // -------- RSS / Atom --------
 async function fetchRss(src: SourceRow): Promise<NormalizedOpp[]> {
-  const res = await fetch(src.url, { headers: { "User-Agent": "OpportunityHubBot/1.0" } });
+  const res = await fetch(src.url, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (compatible; OpportunityHubBot/1.0; +https://opportunityhub.ai)",
+      "Accept": "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
+    },
+  });
   if (!res.ok) throw new Error(`RSS ${res.status}`);
   const xml = await res.text();
   const items = xml.split(/<item[\s>]|<entry[\s>]/i).slice(1);
