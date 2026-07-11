@@ -156,3 +156,53 @@ Return STRICT JSON only:
       return { missing_skills: [], matched_skills: [], resources: [], suggested_certifications: [] };
     }
   });
+
+/** Web-search opportunities via AI when the local DB has no matches.
+ *  Returns real, currently-known opportunities with source URLs. */
+export type WebOpp = {
+  title: string;
+  organization: string;
+  category: string;
+  description: string;
+  apply_link: string;
+  deadline: string | null;
+  location?: string | null;
+  skills_required?: string[];
+};
+
+export const aiSearchOpportunities = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { query: string; category?: string }) => d)
+  .handler(async ({ data }) => {
+    const q = data.query.trim();
+    if (!q) return { results: [] as WebOpp[] };
+
+    const gateway = await getGateway();
+    const today = new Date().toISOString().slice(0, 10);
+    const prompt = `You are an opportunity researcher. A student is searching for: "${q}"${data.category && data.category !== "all" ? ` (category: ${data.category})` : ""}.
+
+Today is ${today}. Return up to 8 REAL, currently-active or recurring opportunities (scholarships, internships, hackathons, fellowships, competitions, grants, courses, jobs) that match the query. Only include programs you are highly confident actually exist, from reputable organizations (governments, universities, well-known companies, established foundations, official programs).
+
+STRICT rules:
+- apply_link MUST be the real official homepage or application URL of the program (https://...). Never invent URLs.
+- organization MUST be the real sponsoring organization.
+- deadline: use ISO YYYY-MM-DD if you know the next upcoming deadline; otherwise null.
+- description: 1-2 factual sentences, no marketing fluff.
+- category: one of scholarship, internship, hackathon, certification, course, fellowship, competition, grant, research, conference, bootcamp, job, volunteer, mentorship, startup, government.
+- If you are not confident a program is real, DO NOT include it. Empty array is better than fabrications.
+
+Return STRICT JSON only, no markdown:
+{"results":[{"title":"","organization":"","category":"","description":"","apply_link":"","deadline":null,"location":null,"skills_required":[]}]}`;
+
+    const { text } = await generateText({ model: gateway(MODEL), prompt });
+    const cleaned = text.replace(/```json\s*|\s*```/g, "").trim();
+    try {
+      const parsed = JSON.parse(cleaned) as { results: WebOpp[] };
+      const results = (parsed.results ?? []).filter(
+        (r) => r && r.title && r.organization && r.apply_link && /^https?:\/\//.test(r.apply_link),
+      );
+      return { results };
+    } catch {
+      return { results: [] as WebOpp[] };
+    }
+  });
