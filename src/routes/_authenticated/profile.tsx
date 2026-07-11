@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,13 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, ShieldPlus } from "lucide-react";
+import { Upload, FileText, Loader2, ShieldPlus, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { claimAdminBootstrap } from "@/lib/admin.functions";
+import { aiResumeAts, type ResumeAts } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "Profile · OpportunityHub AI" }] }),
@@ -49,12 +51,17 @@ function fromCsv(s: string) {
 
 function ProfilePage() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [form, setForm] = useState<Partial<Profile> & { skillsCsv: string; interestsCsv: string; certsCsv: string; langsCsv: string }>({
     skillsCsv: "", interestsCsv: "", certsCsv: "", langsCsv: "",
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const claimAdmin = useServerFn(claimAdminBootstrap);
+  const runAts = useServerFn(aiResumeAts);
+  const [atsLoading, setAtsLoading] = useState(false);
+  const [atsResult, setAtsResult] = useState<ResumeAts | null>(null);
+  const [targetRole, setTargetRole] = useState("");
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -108,6 +115,24 @@ function ProfilePage() {
       toast.error(e instanceof Error ? e.message : "Save failed");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveAndContinue() {
+    await save();
+    navigate({ to: "/dashboard" });
+  }
+
+  async function checkResume() {
+    setAtsLoading(true);
+    setAtsResult(null);
+    try {
+      const res = await runAts({ data: { targetRole: targetRole || undefined, resumeText: form.resume_text ?? undefined } });
+      setAtsResult(res);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to analyze resume");
+    } finally {
+      setAtsLoading(false);
     }
   }
 
@@ -202,9 +227,101 @@ function ProfilePage() {
           </CardContent>
         </Card>
 
+        <Card className="border-primary/30">
+          <CardContent className="p-6 space-y-4">
+            <div>
+              <h2 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Resume ATS checker</h2>
+              <p className="text-sm text-muted-foreground mt-1">Get an ATS score, keyword gaps, and skills to improve. Save your resume text above first.</p>
+            </div>
+            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+              <Input placeholder="Target role (optional) — e.g. Data Analyst Intern" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
+              <Button onClick={checkResume} disabled={atsLoading || !(form.resume_text?.trim())}>
+                {atsLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                Check resume
+              </Button>
+            </div>
+
+            {atsResult && (
+              <div className="space-y-5 pt-2">
+                <div className="rounded-lg border bg-secondary/30 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">ATS score</span>
+                    <span className="text-2xl font-bold">{atsResult.score}<span className="text-sm text-muted-foreground">/100</span></span>
+                  </div>
+                  <Progress value={atsResult.score} className="h-2" />
+                  {atsResult.summary && <p className="text-sm text-muted-foreground mt-3">{atsResult.summary}</p>}
+                </div>
+
+                {atsResult.strengths.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-2"><CheckCircle2 className="h-4 w-4 text-green-600" /> Strengths</h3>
+                    <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
+                      {atsResult.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {atsResult.weaknesses.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-2"><AlertCircle className="h-4 w-4 text-amber-600" /> Weaknesses</h3>
+                    <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
+                      {atsResult.weaknesses.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {atsResult.missing_keywords.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Missing keywords</h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {atsResult.missing_keywords.map((k) => <Badge key={k} variant="outline">{k}</Badge>)}
+                    </div>
+                  </div>
+                )}
+
+                {atsResult.skills_to_improve.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Skills to improve</h3>
+                    <div className="space-y-2">
+                      {atsResult.skills_to_improve.map((s, i) => (
+                        <div key={i} className="rounded-md border p-3 text-sm">
+                          <div className="font-medium">{s.skill}</div>
+                          <div className="text-muted-foreground">{s.why}</div>
+                          {s.resource && <div className="text-xs mt-1 text-primary">→ {s.resource}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {atsResult.formatting_issues.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Formatting issues</h3>
+                    <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
+                      {atsResult.formatting_issues.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+
+                {atsResult.suggestions.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2">Suggestions</h3>
+                    <ul className="text-sm space-y-1 list-disc pl-5 text-muted-foreground">
+                      {atsResult.suggestions.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <div className="flex flex-wrap gap-3">
           <Button onClick={save} disabled={saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Save profile
+          </Button>
+          <Button onClick={saveAndContinue} disabled={saving} variant="default">
+            Save & continue <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
           <Button variant="outline" onClick={becomeAdmin}>
             <ShieldPlus className="h-4 w-4 mr-2" /> Claim admin (first user only)

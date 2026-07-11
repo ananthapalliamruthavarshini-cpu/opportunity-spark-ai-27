@@ -206,3 +206,80 @@ Return STRICT JSON only, no markdown:
       return { results: [] as WebOpp[] };
     }
   });
+
+/** AI Resume ATS checker — scores the user's resume and suggests skills to improve. */
+export type ResumeAts = {
+  score: number;
+  summary: string;
+  strengths: string[];
+  weaknesses: string[];
+  missing_keywords: string[];
+  skills_to_improve: Array<{ skill: string; why: string; resource?: string }>;
+  formatting_issues: string[];
+  suggestions: string[];
+};
+
+export const aiResumeAts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { targetRole?: string; resumeText?: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name,degree,branch,current_year,skills,interests,certifications,resume_text")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const resumeText = (data.resumeText ?? profile?.resume_text ?? "").trim();
+    if (!resumeText) throw new Error("No resume text found. Paste your resume in the Resume section first.");
+
+    const gateway = await getGateway();
+    const prompt = `You are an ATS (Applicant Tracking System) and career coach. Analyze the following resume${
+      data.targetRole ? ` for the target role: "${data.targetRole}"` : ""
+    } and produce a strict evaluation.
+
+STUDENT CONTEXT: ${JSON.stringify({
+      degree: profile?.degree,
+      branch: profile?.branch,
+      year: profile?.current_year,
+      known_skills: profile?.skills ?? [],
+      certifications: profile?.certifications ?? [],
+    })}
+
+RESUME:
+"""
+${resumeText.slice(0, 8000)}
+"""
+
+Score the resume out of 100 based on: ATS-friendly formatting (20%), keyword match & industry terms (25%), quantified impact & action verbs (20%), skills/technical depth (20%), clarity/structure (15%).
+
+Return STRICT JSON only, no markdown:
+{
+  "score": <0-100 integer>,
+  "summary": "<2 sentence overall verdict>",
+  "strengths": ["...", "..."],
+  "weaknesses": ["...", "..."],
+  "missing_keywords": ["...", "..."],
+  "skills_to_improve": [{"skill":"","why":"","resource":"<free course/site suggestion>"}],
+  "formatting_issues": ["..."],
+  "suggestions": ["actionable bullet ...", "..."]
+}`;
+
+    const { text } = await generateText({ model: gateway(MODEL), prompt });
+    const cleaned = text.replace(/```json\s*|\s*```/g, "").trim();
+    try {
+      const parsed = JSON.parse(cleaned) as ResumeAts;
+      return {
+        score: Math.max(0, Math.min(100, Math.round(parsed.score ?? 0))),
+        summary: parsed.summary ?? "",
+        strengths: parsed.strengths ?? [],
+        weaknesses: parsed.weaknesses ?? [],
+        missing_keywords: parsed.missing_keywords ?? [],
+        skills_to_improve: parsed.skills_to_improve ?? [],
+        formatting_issues: parsed.formatting_issues ?? [],
+        suggestions: parsed.suggestions ?? [],
+      } satisfies ResumeAts;
+    } catch {
+      throw new Error("AI returned an invalid response. Please try again.");
+    }
+  });

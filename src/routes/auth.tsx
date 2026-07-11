@@ -21,19 +21,19 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard", replace: true });
+      if (data.user) navigate({ to: "/profile", replace: true });
     });
   }, [navigate]);
 
   async function signInGoogle() {
     setLoading(true);
-    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
+    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/profile" });
     if (res.error) {
       toast.error(res.error.message || "Google sign-in failed");
       setLoading(false);
       return;
     }
-    if (!res.redirected) navigate({ to: "/dashboard", replace: true });
+    if (!res.redirected) navigate({ to: "/profile", replace: true });
   }
 
   async function emailAuth(mode: "signin" | "signup", form: HTMLFormElement) {
@@ -46,7 +46,7 @@ function AuthPage() {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
           email, password,
-          options: { emailRedirectTo: window.location.origin + "/dashboard", data: { full_name } },
+          options: { emailRedirectTo: window.location.origin + "/profile", data: { full_name } },
         });
         if (error) throw error;
         toast.success("Account created! You're signed in.");
@@ -54,7 +54,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/dashboard", replace: true });
+      navigate({ to: "/profile", replace: true });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Authentication failed");
     } finally {
