@@ -11,9 +11,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Upload, FileText, Loader2, ShieldPlus, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { Upload, FileText, Loader2, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { claimAdminBootstrap } from "@/lib/admin.functions";
 import { aiResumeAts, type ResumeAts } from "@/lib/ai.functions";
 
 export const Route = createFileRoute("/_authenticated/profile")({
