@@ -1,11 +1,9 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, LayoutDashboard, Briefcase, User, MessageSquareText, ListChecks, Shield, LogOut, Menu, Moon, Sun } from "lucide-react";
+import { Sparkles, LayoutDashboard, Briefcase, User, MessageSquareText, ListChecks, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
-import { isAdmin as isAdminFn } from "@/lib/admin.functions";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
   Sheet, SheetContent, SheetTrigger,
@@ -36,7 +34,7 @@ function useDark() {
   return { dark, toggle };
 }
 
-function NavLinks({ onClick, admin }: { onClick?: () => void; admin: boolean }) {
+function NavLinks({ onClick }: { onClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <nav className="flex flex-col gap-1">
@@ -60,21 +58,6 @@ function NavLinks({ onClick, admin }: { onClick?: () => void; admin: boolean }) 
           </Link>
         );
       })}
-      {admin && (
-        <Link
-          to="/admin"
-          onClick={onClick}
-          className={cn(
-            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors mt-2 border-t pt-4",
-            pathname.startsWith("/admin")
-              ? "bg-primary text-primary-foreground"
-              : "text-muted-foreground hover:bg-secondary hover:text-foreground",
-          )}
-        >
-          <Shield className="h-4 w-4" />
-          Admin
-        </Link>
-      )}
     </nav>
   );
 }
@@ -84,9 +67,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const { dark, toggle } = useDark();
   const [open, setOpen] = useState(false);
-  const isAdminCall = useServerFn(isAdminFn);
-  const { data } = useQuery({ queryKey: ["isAdmin"], queryFn: () => isAdminCall() });
-  const admin = !!data?.admin;
 
   async function signOut() {
     await qc.cancelQueries();
@@ -115,7 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="mb-6 flex items-center gap-2 font-bold text-lg">
                 <Sparkles className="h-5 w-5 text-primary" /> OpportunityHub
               </div>
-              <NavLinks onClick={() => setOpen(false)} admin={admin} />
+              <NavLinks onClick={() => setOpen(false)} />
               <Button variant="outline" className="mt-6 w-full" onClick={signOut}>
                 <LogOut className="h-4 w-4 mr-2" /> Sign out
               </Button>
@@ -133,7 +113,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <span>OpportunityHub</span>
           </Link>
-          <NavLinks admin={admin} />
+          <NavLinks />
           <div className="mt-auto space-y-2">
             <Button variant="ghost" className="w-full justify-start" onClick={toggle}>
               {dark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
