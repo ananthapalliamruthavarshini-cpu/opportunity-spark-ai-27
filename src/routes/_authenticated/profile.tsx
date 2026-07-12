@@ -56,7 +56,6 @@ function ProfilePage() {
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const claimAdmin = useServerFn(claimAdminBootstrap);
   const runAts = useServerFn(aiResumeAts);
   const [atsLoading, setAtsLoading] = useState(false);
   const [atsResult, setAtsResult] = useState<ResumeAts | null>(null);
@@ -152,16 +151,6 @@ function ProfilePage() {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
-    }
-  }
-
-  async function becomeAdmin() {
-    try {
-      await claimAdmin();
-      toast.success("You're now an admin. Reload to see the Admin tab.");
-      setTimeout(() => location.reload(), 800);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
     }
   }
 
@@ -321,9 +310,6 @@ function ProfilePage() {
           </Button>
           <Button onClick={saveAndContinue} disabled={saving} variant="default">
             Save & continue <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-          <Button variant="outline" onClick={becomeAdmin}>
-            <ShieldPlus className="h-4 w-4 mr-2" /> Claim admin (first user only)
           </Button>
         </div>
       </div>
