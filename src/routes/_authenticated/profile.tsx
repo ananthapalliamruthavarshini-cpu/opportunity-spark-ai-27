@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Upload, FileText, Loader2, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { aiResumeAts, type ResumeAts } from "@/lib/ai.functions";
+import { extractPdfText } from "@/lib/pdf-extract";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({ meta: [{ title: "Profile · OpportunityHub AI" }] }),
@@ -60,6 +61,7 @@ function ProfilePage() {
   const [atsLoading, setAtsLoading] = useState(false);
   const [atsResult, setAtsResult] = useState<ResumeAts | null>(null);
   const [targetRole, setTargetRole] = useState("");
+  const [hasResumeText, setHasResumeText] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
@@ -80,6 +82,7 @@ function ProfilePage() {
         certsCsv: toCsv(profile.certifications),
         langsCsv: toCsv(profile.languages),
       });
+      setHasResumeText(Boolean((profile.resume_text ?? "").trim()));
     }
   }, [profile]);
 
@@ -103,7 +106,6 @@ function ProfilePage() {
         projects: form.projects ?? null,
         linkedin_url: form.linkedin_url ?? null,
         github_url: form.github_url ?? null,
-        resume_text: form.resume_text ?? null,
       };
       const { error } = await supabase.from("profiles").update(update).eq("id", user.id);
       if (error) throw error;
@@ -125,7 +127,7 @@ function ProfilePage() {
     setAtsLoading(true);
     setAtsResult(null);
     try {
-      const res = await runAts({ data: { targetRole: targetRole || undefined, resumeText: form.resume_text ?? undefined } });
+      const res = await runAts({ data: { targetRole: targetRole || undefined } });
       setAtsResult(res);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to analyze resume");
@@ -144,8 +146,32 @@ function ProfilePage() {
       const path = `${user.id}/resume-${Date.now()}.pdf`;
       const { error: upErr } = await supabase.storage.from("resumes").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      await supabase.from("profiles").update({ resume_path: path }).eq("id", user.id);
+      // extract text client-side so AI can score it without a paste box
+      let extracted = "";
+      try {
+        extracted = await extractPdfText(file);
+      } catch {
+        toast.error("Could not read text from that PDF. Try a text-based (non-scanned) resume.");
+      }
+      await supabase
+        .from("profiles")
+        .update({ resume_path: path, resume_text: extracted || null })
+        .eq("id", user.id);
+      setHasResumeText(Boolean(extracted));
       toast.success("Resume uploaded");
+      // auto-run ATS check after successful extraction
+      if (extracted) {
+        setAtsLoading(true);
+        setAtsResult(null);
+        try {
+          const res = await runAts({ data: { targetRole: targetRole || undefined } });
+          setAtsResult(res);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Failed to analyze resume");
+        } finally {
+          setAtsLoading(false);
+        }
+      }
       qc.invalidateQueries({ queryKey: ["profile"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
@@ -199,6 +225,9 @@ function ProfilePage() {
         <Card>
           <CardContent className="p-6 space-y-4">
             <h2 className="font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Resume</h2>
+            <p className="text-sm text-muted-foreground">
+              Upload your resume PDF — we'll extract the text automatically and score it. No copy-paste needed.
+            </p>
             <div className="flex items-center gap-3">
               <Button asChild variant="outline" disabled={uploading}>
                 <label className="cursor-pointer">
@@ -207,11 +236,8 @@ function ProfilePage() {
                   <input type="file" accept="application/pdf" hidden onChange={(e) => e.target.files?.[0] && uploadResume(e.target.files[0])} />
                 </label>
               </Button>
-              {profile?.resume_path && <span className="text-sm text-muted-foreground">✓ Uploaded</span>}
+              {profile?.resume_path && <span className="text-sm text-muted-foreground">✓ Uploaded{hasResumeText ? " · text extracted" : ""}</span>}
             </div>
-            <Field label="Resume text (paste content for better AI matching)">
-              <Textarea rows={6} value={form.resume_text ?? ""} onChange={(e) => setForm({ ...form, resume_text: e.target.value })} placeholder="Paste your resume text here..." />
-            </Field>
           </CardContent>
         </Card>
 
@@ -219,13 +245,13 @@ function ProfilePage() {
           <CardContent className="p-6 space-y-4">
             <div>
               <h2 className="font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> Resume ATS checker</h2>
-              <p className="text-sm text-muted-foreground mt-1">Get an ATS score, keyword gaps, and skills to improve. Save your resume text above first.</p>
+              <p className="text-sm text-muted-foreground mt-1">Get an ATS score, keyword gaps, and skills to improve. Upload your resume PDF above and this runs automatically.</p>
             </div>
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">
               <Input placeholder="Target role (optional) — e.g. Data Analyst Intern" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
-              <Button onClick={checkResume} disabled={atsLoading || !(form.resume_text?.trim())}>
+              <Button onClick={checkResume} disabled={atsLoading || !hasResumeText}>
                 {atsLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
-                Check resume
+                Re-check
               </Button>
             </div>
 

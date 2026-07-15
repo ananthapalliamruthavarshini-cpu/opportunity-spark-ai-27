@@ -1,0 +1,1 @@
+ALTER TYPE public.opp_category ADD VALUE IF NOT EXISTS 'job';
