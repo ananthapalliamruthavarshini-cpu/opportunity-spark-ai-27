@@ -21,10 +21,8 @@ export const Route = createFileRoute("/_authenticated/opportunities/")({
 });
 
 const CATEGORIES = [
-  "all", "scholarship", "internship", "hackathon", "certification",
-  "course", "fellowship", "competition", "grant", "research",
-  "conference", "bootcamp", "job", "volunteer", "mentorship",
-  "startup", "government",
+  "all", "job", "internship", "scholarship", "hackathon",
+  "fellowship", "competition", "grant", "certification", "course",
 ] as const;
 
 function OppList() {
